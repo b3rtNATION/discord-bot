@@ -1,0 +1,14 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "discord bot for desiRegaming",
+  "main": "discord-bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Toenne <b3rrr7@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "eris": "^0.15.1"
+  }
+}
