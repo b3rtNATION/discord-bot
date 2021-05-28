@@ -1,48 +1,42 @@
 const Eris = require("eris");
-require('dotenv').config();
-const bot = new Eris(process.env.token);
+require("dotenv").config();
+const bot = new Eris(process.env.token, { restMode: true });
 
-const SUPPORTROOM = "847721201782489098";
+const SUPPORTROOM = "841449567790170112";
 
-const ADMINS = ["718887341300908093", "360508102560448512"];
+const SUPPORTROLE = "847811693252837406"
 
-const GUILD_ID = "847170167926161469";
+const GUILD_ID = "841429444647976961";
 
 const CS = {
-  parent: "847520199208075314",
-  overwatch: "847520422824116253",
+  parent: "841462843731738635",
+  overwatch: "841464217776160788",
   name: "CS:GO Matchroom",
-  color: "\uD83D\uDFE0",
 };
 const APEX = {
-  parent: "847520915805044736",
-  overwatch: "847522631992344626",
+  parent: "847217713654661190",
+  overwatch: "847218203158511676",
   name: "APEX Matchroom",
-  color: "\uD83D\uDD34",
 };
 const COD = {
-  parent: "847596655410282568",
-  overwatch: "847596762994049054",
+  parent: "847213945064390666",
+  overwatch: "847214787356393472",
   name: "COD Matchroom",
-  color: "\u26AB",
 };
 const LOL = {
-  parent: "847596639086706698",
-  overwatch: "847596738231271455",
+  parent: "841797724223045632",
+  overwatch: "841798341112889395",
   name: "LOL Matchroom",
-  color: "\uD83D\uDFE3",
 };
 const RL = {
-  parent: "847596705951514644",
-  overwatch: "847596835081289729",
+  parent: "841463201518452756",
+  overwatch: "841464253331406868",
   name: "RL Matchroom",
-  color: "\uD83D\uDD35",
 };
 const OTHER = {
-  parent: "847596688998268978",
-  overwatch: "847596799354077184",
+  parent: "847466636834242581",
+  overwatch: "847466932689043518",
   name: "Gamingroom",
-  color: "\uD83D\uDFE1",
 };
 const GAMES = [CS, APEX, COD, LOL, RL, OTHER];
 const tempChannels = [];
@@ -70,11 +64,16 @@ const checkForChannelRequest = (channel, member) => {
   }
 };
 
-const checkForSupport = (channel, member) => {
+const checkForSupport = async (channel, member) => {
   if (SUPPORTROOM === channel.id) {
-    for (const admin of ADMINS) {
-      contactAdmins(admin, member);
-    }
+    const guilds = bot.guilds;
+    guilds.forEach((guild) => {
+      guild.members.forEach((admin) => {
+        if (admin.roles.includes(SUPPORTROLE)) {
+          contactAdmins(admin.id, member)
+        }
+      });
+    });
   }
 };
 
@@ -91,17 +90,19 @@ const createNewChannel = async (game, member) => {
   try {
     const newChannel = await bot.createChannel(
       GUILD_ID,
-      `${game.color} ${game.name}`,
+      `${game.name}`,
       2,
       {
         nsfw: false,
-        reason: "weil ich cool bin",
-        topic: "labern",
+        reason: "new channel needed",
+        topic: "ingame talk",
         parentID: game.parent,
+        bitrate: 96000
       }
     );
     tempChannels.push(newChannel.id);
     moveMemberToRoom(newChannel, member);
+    console.log(newChannel);
   } catch (err) {
     console.log(err);
   }
