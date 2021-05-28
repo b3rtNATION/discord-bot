@@ -9,6 +9,7 @@
   "author": "Robert Toenne <b3rrr7@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^10.0.0",
     "eris": "^0.15.1"
   }
 }

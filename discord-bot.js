@@ -1,9 +1,10 @@
 const Eris = require("eris");
-const bot = new Eris(process.env.TOKEN);
+require('dotenv').config();
+const bot = new Eris(process.env.token);
 
 const SUPPORTROOM = "847721201782489098";
 
-const ADMINS = ["718887341300908093"];
+const ADMINS = ["718887341300908093", "360508102560448512"];
 
 const GUILD_ID = "847170167926161469";
 
