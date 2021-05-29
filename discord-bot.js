@@ -179,7 +179,7 @@ const handleNewUser = async (member) => {
   if (member.roles.length === 0) {
     const dm = await bot.getDMChannel(member.id);
     dm.createMessage(
-      `Hallo ${member.username} und Willkommen auf dem Discord von desiRe Gaming!\n\nWenn du uns beitreten möchtest, gibt es zwei einfache Wege:\n\n1. Am schnellsten geht es, wenn du dich in das Support Wartezimmer begibst und auf einen unserer Admins wartest.\n\n2. Sollte gerade kein Admin auf dem TS/Discord sein, kannst du uns auch über das Join-Us Formular auf unserer Website https://desiregaming.de/ kontaktieren.`
+      `Hallo ${member.username} und Willkommen auf dem Discord von desiRe Gaming!\n\nFalls Du hier neu bist, komm doch einfach mal in das Support Wartezimmer. Unsere Supporter sind schnellstmöglich für dich da!`
     );
   }
 };
