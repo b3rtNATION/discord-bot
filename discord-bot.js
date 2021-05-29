@@ -3,11 +3,13 @@ require("dotenv").config();
 const bot = new Eris(process.env.token, { restMode: true });
 
 const SUPPORTROOM = "841449567790170112";
+const LOBBY = "841448750564245524";
+
 const SUPPORTROLE = "847811693252837406";
 const MEMBERROLE = "841431597206863876";
 const EVERYONE = "841429444647976961";
-const FRIENDWITH = "841432902117490709"
-const FRIENDWITHOUT = "841433371728412673"
+const FRIENDWITH = "841432902117490709";
+const FRIENDWITHOUT = "841433371728412673";
 
 const GUILD_ID = "841429444647976961";
 
@@ -21,31 +23,31 @@ const APEX = {
   parent: "847217713654661190",
   overwatch: "847218203158511676",
   name: "APEX",
-  count: 1
+  count: 1,
 };
 const COD = {
   parent: "847213945064390666",
   overwatch: "847214787356393472",
   name: "COD",
-  count: 1
+  count: 1,
 };
 const LOL = {
   parent: "841797724223045632",
   overwatch: "841798341112889395",
   name: "LOL",
-  count: 1
+  count: 1,
 };
 const RL = {
   parent: "841463201518452756",
   overwatch: "841464253331406868",
   name: "RL",
-  count: 1
+  count: 1,
 };
 const OTHER = {
   parent: "847466636834242581",
   overwatch: "847466932689043518",
   name: "Gamingroom",
-  count: 1
+  count: 1,
 };
 const GAMES = [CS, APEX, COD, LOL, RL, OTHER];
 const tempChannels = [];
@@ -56,18 +58,22 @@ bot.on("voiceChannelSwitch", (member, newChannel, oldChannel) => {
   checkForChannelRequest(newChannel, member);
   checkMemberCountInTempChannel();
   checkForSupport(newChannel, member);
-  handleChannelPermission(newChannel, member, 'join')
+  handleChannelPermission(newChannel, member, "join");
 });
 
 bot.on("voiceChannelJoin", (member, newChannel) => {
   checkForChannelRequest(newChannel, member);
   checkForSupport(newChannel, member);
-  handleChannelPermission(newChannel, member, 'join')
+  handleChannelPermission(newChannel, member, "join");
 });
 
 bot.on("voiceChannelLeave", (member, oldChannel) => {
   checkMemberCountInTempChannel();
-  handleChannelPermission(oldChannel, member, 'leave')
+  handleChannelPermission(oldChannel, member, "leave");
+});
+
+bot.on("guildMemberAdd", (guild, member) => {
+  handleNewUser(member);
 });
 
 // ------------- L O G I C -------------
@@ -128,7 +134,11 @@ const createNewChannel = async (game, member) => {
         ],
       }
     );
-    tempChannels.push({ voice: newVoiceChannel.id, text: newTextChannel.id, gameName: game.name  });
+    tempChannels.push({
+      voice: newVoiceChannel.id,
+      text: newTextChannel.id,
+      gameName: game.name,
+    });
     moveMemberToRoom(newVoiceChannel, member);
     game.count++;
   } catch (err) {
@@ -146,18 +156,31 @@ const checkMemberCountInTempChannel = () => {
 };
 
 const handleChannelPermission = (channel, member, type) => {
-  if (type === 'join') {
+  if (type === "join") {
     for (const room of tempChannels) {
       if (room.voice === channel.id) {
-        bot.getChannel(room.text).editPermission(member.id, 2953313361, 8, 'member')
+        bot
+          .getChannel(room.text)
+          .editPermission(member.id, 2953313361, 8, "member");
       }
     }
   } else {
     for (const room of tempChannels) {
       if (room.voice === channel.id) {
-        bot.getChannel(room.text).editPermission(member.id, 1, 8589934591, 'member')
+        bot
+          .getChannel(room.text)
+          .editPermission(member.id, 1, 8589934591, "member");
       }
     }
+  }
+};
+
+const handleNewUser = async (member) => {
+  if (member.roles.length === 0) {
+    const dm = await bot.getDMChannel(member.id);
+    dm.createMessage(
+      `Hallo ${member.username} und Willkommen auf dem Discord von desiRe Gaming!\n\nWenn du uns beitreten möchtest, gibt es zwei einfache Wege:\n\n1. Am schnellsten geht es, wenn du dich in das Support Wartezimmer begibst und auf einen unserer Admins wartest.\n\n2. Sollte gerade kein Admin auf dem TS/Discord sein, kannst du uns auch über das Join-Us Formular auf unserer Website https://desiregaming.de/ kontaktieren.`
+    );
   }
 };
 
@@ -167,8 +190,8 @@ const removeChannel = (channel) => {
   const channelToDeleteIndex = tempChannels.findIndex(
     (channelInArray) => channelInArray.voice === channel.voice
   );
-  const gameName = tempChannels[channelToDeleteIndex].gameName
-  GAMES.find(game => game.name === gameName).count--
+  const gameName = tempChannels[channelToDeleteIndex].gameName;
+  GAMES.find((game) => game.name === gameName).count--;
 
   tempChannels.splice(channelToDeleteIndex, 1);
 };
