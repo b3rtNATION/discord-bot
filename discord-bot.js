@@ -11,38 +11,42 @@ const FRIENDWITH = "841432902117490709";
 const FRIENDWITHOUT = "841433371728412673";
 
 const GUILD_ID = "841429444647976961";
-
+const TALK = {
+  parent: "841459514116014100",
+  overwatch: "847805213096149012",
+  name: "Talk"
+}
 const CS = {
   parent: "841462843731738635",
   overwatch: "841464217776160788",
-  name: "CS:GO",
+  name: "CS:GO Matchroom",
 };
 const APEX = {
   parent: "847217713654661190",
   overwatch: "847218203158511676",
-  name: "APEX",
+  name: "APEX Matchroom",
 };
 const COD = {
   parent: "847213945064390666",
   overwatch: "847214787356393472",
-  name: "COD",
+  name: "COD Matchroom",
 };
 const LOL = {
   parent: "841797724223045632",
   overwatch: "841798341112889395",
-  name: "LOL",
+  name: "LOL Matchroom",
 };
 const RL = {
   parent: "841463201518452756",
   overwatch: "841464253331406868",
-  name: "RL",
+  name: "RL Matchroom",
 };
 const OTHER = {
   parent: "847466636834242581",
   overwatch: "847466932689043518",
-  name: "",
+  name: "Gamingroom",
 };
-const GAMES = [CS, APEX, COD, LOL, RL, OTHER];
+const GAMES = [CS, APEX, COD, LOL, RL, OTHER, TALK];
 const tempChannels = [];
 
 // ------------- E V E N T S -------------
@@ -68,6 +72,10 @@ bot.on("voiceChannelLeave", (member, oldChannel) => {
 bot.on("guildMemberAdd", (guild, member) => {
   handleNewUser(member);
 });
+
+bot.on ("messageCreate", (msg) => {
+  handleMaxUserRequest(msg)
+})
 
 // ------------- L O G I C -------------
 
@@ -105,7 +113,7 @@ const createNewChannel = async (game, member) => {
   try {
     const newVoiceChannel = await bot.createChannel(
       GUILD_ID,
-      `${game.name} Matchroom`,
+      game.name,
       2,
       {
         parentID: game.parent,
@@ -115,7 +123,7 @@ const createNewChannel = async (game, member) => {
 
     const newTextChannel = await bot.createChannel(
       GUILD_ID,
-      `${game.name}-matchroom`,
+      game.name,
       0,
       {
         parentID: game.parent,
@@ -131,6 +139,7 @@ const createNewChannel = async (game, member) => {
       voice: newVoiceChannel.id,
       text: newTextChannel.id,
       gameName: game.name,
+      owner: member.id
     });
     moveMemberToRoom(newVoiceChannel, member);
   } catch (err) {
@@ -175,6 +184,16 @@ const handleNewUser = async (member) => {
     );
   }
 };
+
+const handleMaxUserRequest = (msg) => {
+  for (const channel of tempChannels) {
+    if (channel.text === msg.channel.id && msg.author.id === channel.owner) {
+      const maxUser = msg.content.substring(3, msg.content.lenth)
+      bot.getChannel(channel.voice).userLimit = maxUser
+      bot.getChannel(channel.voice).name += `MAX${maxUser}`
+    }
+  }
+}
 
 const removeChannel = (channel) => {
   bot.deleteChannel(channel.voice);
