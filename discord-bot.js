@@ -3,7 +3,6 @@ require("dotenv").config();
 const bot = new Eris(process.env.token, { restMode: true });
 
 const SUPPORTROOM = "841449567790170112";
-const LOBBY = "841448750564245524";
 
 const SUPPORTROLE = "847811693252837406";
 const MEMBERROLE = "841431597206863876";
@@ -17,37 +16,31 @@ const CS = {
   parent: "841462843731738635",
   overwatch: "841464217776160788",
   name: "CS:GO",
-  count: 1,
 };
 const APEX = {
   parent: "847217713654661190",
   overwatch: "847218203158511676",
   name: "APEX",
-  count: 1,
 };
 const COD = {
   parent: "847213945064390666",
   overwatch: "847214787356393472",
   name: "COD",
-  count: 1,
 };
 const LOL = {
   parent: "841797724223045632",
   overwatch: "841798341112889395",
   name: "LOL",
-  count: 1,
 };
 const RL = {
   parent: "841463201518452756",
   overwatch: "841464253331406868",
   name: "RL",
-  count: 1,
 };
 const OTHER = {
   parent: "847466636834242581",
   overwatch: "847466932689043518",
   name: "Gamingroom",
-  count: 1,
 };
 const GAMES = [CS, APEX, COD, LOL, RL, OTHER];
 const tempChannels = [];
@@ -112,7 +105,7 @@ const createNewChannel = async (game, member) => {
   try {
     const newVoiceChannel = await bot.createChannel(
       GUILD_ID,
-      `${game.name} Matchroom #${game.count}`,
+      `${game.name} Matchroom`,
       2,
       {
         parentID: game.parent,
@@ -122,7 +115,7 @@ const createNewChannel = async (game, member) => {
 
     const newTextChannel = await bot.createChannel(
       GUILD_ID,
-      `${game.name}-matchroom-${game.count}`,
+      `${game.name}-matchroom`,
       0,
       {
         parentID: game.parent,
@@ -140,7 +133,6 @@ const createNewChannel = async (game, member) => {
       gameName: game.name,
     });
     moveMemberToRoom(newVoiceChannel, member);
-    game.count++;
   } catch (err) {
     console.log(err);
   }
@@ -191,7 +183,6 @@ const removeChannel = (channel) => {
     (channelInArray) => channelInArray.voice === channel.voice
   );
   const gameName = tempChannels[channelToDeleteIndex].gameName;
-  GAMES.find((game) => game.name === gameName).count--;
 
   tempChannels.splice(channelToDeleteIndex, 1);
 };
