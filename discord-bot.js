@@ -137,6 +137,7 @@ const createNewChannel = async (game, member) => {
     );
     tempChannels.push({
       voice: newVoiceChannel.id,
+      voiceName: newVoiceChannel.name,
       text: newTextChannel.id,
       gameName: game.name,
       owner: member.id
@@ -187,10 +188,12 @@ const handleNewUser = async (member) => {
 
 const handleMaxUserRequest = (msg) => {
   for (const channel of tempChannels) {
-    if (channel.text === msg.channel.id && msg.author.id === channel.owner) {
+    if (channel.text === msg.channel.id && msg.author.id === channel.owner && msg.content.toLowerCase().startsWith('max')) {
       const maxUser = msg.content.substring(3, msg.content.lenth)
-      bot.getChannel(channel.voice).userLimit = maxUser
-      bot.getChannel(channel.voice).name += `MAX${maxUser}`
+      bot.getChannel(channel.voice).edit({
+        name: `${channel.voiceName} MAX${maxUser}`,
+        userLimit: maxUser
+      })
     }
   }
 }
@@ -201,8 +204,6 @@ const removeChannel = (channel) => {
   const channelToDeleteIndex = tempChannels.findIndex(
     (channelInArray) => channelInArray.voice === channel.voice
   );
-  const gameName = tempChannels[channelToDeleteIndex].gameName;
-
   tempChannels.splice(channelToDeleteIndex, 1);
 };
 
