@@ -40,7 +40,7 @@ const RL = {
 const OTHER = {
   parent: "847466636834242581",
   overwatch: "847466932689043518",
-  name: "Gamingroom",
+  name: "",
 };
 const GAMES = [CS, APEX, COD, LOL, RL, OTHER];
 const tempChannels = [];
