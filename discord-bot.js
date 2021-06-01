@@ -170,7 +170,7 @@ const getRoomNumber = (game) => {
   if (category.channels.size % 2 === 0) {
     return category.channels.size - (category.channels.size / 2)
   }
-  return category.channels.size - ((category.channels.size - 1) / 2)
+  return category.channels.size - ((category.channels.size - 1) / 2) - 1
 }
 
 const handleChannelName = () => {
@@ -243,13 +243,24 @@ const handleMaxUserRequest = (msg) => {
       msg.content.toLowerCase().startsWith("max")
     ) {
       const maxUser = msg.content.substring(3, msg.content.lenth);
-      bot.getChannel(channel.voice).edit({
-        name: `${channel.voiceName} MAX${maxUser}`,
-        userLimit: maxUser,
-      });
+      renameChannel(channel, maxUser)
     }
   }
 };
+
+const renameChannel = (channel, maxUser) => {
+  if (maxUser === '0') {
+    bot.getChannel(channel.voice).edit({
+      name: `${channel.voiceName}`,
+      userLimit: maxUser,
+    });
+  } else {
+    bot.getChannel(channel.voice).edit({
+      name: `${channel.voiceName} MAX${maxUser}`,
+      userLimit: maxUser,
+    });
+  }
+}
 
 const removeChannel = async (channel) => {
   try {
