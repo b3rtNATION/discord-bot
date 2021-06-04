@@ -1,4 +1,5 @@
 const Eris = require("eris");
+const fs = require('fs')
 require("dotenv").config();
 const bot = new Eris(process.env.token, { restMode: true });
 
@@ -102,7 +103,7 @@ const checkForSupport = (channel, member) => {
             )
               return;
           } catch (err) {
-            sendErrorMessage(err);
+            logError(err);
           }
           contactAdmins(admin.id, member);
         }
@@ -116,13 +117,20 @@ const contactAdmins = async (admin, member) => {
     const chatroom = await bot.getDMChannel(admin);
     chatroom.createMessage(`${member.username} braucht dich als Support`);
   } catch (err) {
-    sendErrorMessage(err);
+    logError(err);
   }
 };
 
-const sendErrorMessage = async (err) => {
-  const channel = await bot.getDMChannel(ROB);
-  channel.createMessage(`Error: ${err.message}`);
+const logError = (error) => {
+  const timeStamp = `\n\n\n${new Date().toLocaleString(
+    "de-DE"
+  )}\n*****************\n`;
+  try {
+    fs.appendFileSync("errorLog.txt", timeStamp);
+    fs.appendFileSync("errorLog.txt", error.message);
+  } catch (err) {
+    console.log(err.message);
+  }
 };
 
 const moveMemberToRoom = (newChannel, member) => {
@@ -165,7 +173,7 @@ const createNewChannel = async (game, member) => {
     });
     moveMemberToRoom(newVoiceChannel, member);
   } catch (err) {
-    sendErrorMessage(err);
+    logError(err);
   }
 };
 
@@ -195,7 +203,7 @@ const handleChannelName = () => {
         await textChannel.edit({ name: `Raum ${index + 1}` });
       }
     } catch (err) {
-      sendErrorMessage(err);
+      logError(err);
     }
   });
 };
@@ -227,9 +235,8 @@ const handleChannelPermission = async (channel, member, type) => {
       }
     }
   } catch (err) {
-    sendErrorMessage(err)
+    logError(err)
   }
-  
 };
 
 const handleNewUser = async (member) => {
@@ -241,19 +248,21 @@ const handleNewUser = async (member) => {
       );
     }
   } catch (err) {
-    sendErrorMessage(err);
+    logError(err);
   }
 };
 
 const handleMaxUserRequest = (msg) => {
   for (const channel of tempChannels) {
-    if (
-      channel.text === msg.channel.id &&
-      msg.author.id === channel.owner &&
-      msg.content.toLowerCase().startsWith("max")
-    ) {
+    if (channel.text === msg.channel.id && msg.author.id === channel.owner) {
       const maxUser = msg.content.substring(3, msg.content.lenth);
-      renameChannel(channel, maxUser);
+      try {
+        await bot.getChannel(channel.voice).edit({
+          userLimit: maxUser,
+        });
+      } catch (err) {
+        logError(err);
+      }
     }
   }
 };
@@ -277,7 +286,7 @@ const removeChannel = async (channel) => {
     await bot.deleteChannel(channel.voice);
     await bot.deleteChannel(channel.text);
   } catch (err) {
-    sendErrorMessage(err);
+    logError(err);
   }
 
   const channelToDeleteIndex = tempChannels.findIndex(

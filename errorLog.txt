@@ -1,0 +1,26 @@
+Errorlog für den Discord BOT
+
+
+2021-6-4 23:21:45
+*****************
+Cannot access 'channel' before initialization
+
+
+2021-6-4 23:22:45
+*****************
+Cannot access 'channel' before initialization
+
+
+2021-6-4 23:22:46
+*****************
+Cannot access 'channel' before initialization
+
+
+2021-6-4 23:23:29
+*****************
+Cannot access 'channel' before initialization
+
+
+2021-6-4 23:23:42
+*****************
+Cannot access 'channel' before initialization
