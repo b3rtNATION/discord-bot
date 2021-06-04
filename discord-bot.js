@@ -252,7 +252,7 @@ const handleNewUser = async (member) => {
   }
 };
 
-const handleMaxUserRequest = (msg) => {
+const handleMaxUserRequest = async (msg) => {
   for (const channel of tempChannels) {
     if (channel.text === msg.channel.id && msg.author.id === channel.owner) {
       const maxUser = msg.content.substring(3, msg.content.lenth);
