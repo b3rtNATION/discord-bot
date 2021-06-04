@@ -3,7 +3,7 @@ require("dotenv").config();
 const bot = new Eris(process.env.token, { restMode: true });
 
 const SUPPORTROOM = "841449567790170112";
-const ROB = "718887341300908093"
+const ROB = "718887341300908093";
 
 const SUPPORTROLE = "847811693252837406";
 const MEMBERROLE = "841431597206863876";
@@ -94,12 +94,16 @@ const checkForSupport = (channel, member) => {
     guilds.forEach((guild) => {
       guild.members.forEach((admin) => {
         if (admin.roles.includes(SUPPORTROLE)) {
-          if (
-            admin.clientStatus.web === "offline" &&
-            admin.clientStatus.desktop === "offline" &&
-            admin.clientStatus.mobile === "offline"
-          )
-            return;
+          try {
+            if (
+              admin.clientStatus.web === "offline" &&
+              admin.clientStatus.desktop === "offline" &&
+              admin.clientStatus.mobile === "offline"
+            )
+              return;
+          } catch (err) {
+            sendErrorMessage(err);
+          }
           contactAdmins(admin.id, member);
         }
       });
@@ -112,14 +116,14 @@ const contactAdmins = async (admin, member) => {
     const chatroom = await bot.getDMChannel(admin);
     chatroom.createMessage(`${member.username} braucht dich als Support`);
   } catch (err) {
-    sendErrorMessage(err)
+    sendErrorMessage(err);
   }
-  
 };
 
-const sendErrorMessage = (msg) => {
-  bot.getDMChannel(ROB).createMessage(msg)
-}
+const sendErrorMessage = async (err) => {
+  const channel = await bot.getDMChannel(ROB);
+  channel.createMessage(`Error: ${err.message}`);
+};
 
 const moveMemberToRoom = (newChannel, member) => {
   bot.editGuildMember(GUILD_ID, member.id, { channelID: newChannel.id });
@@ -161,38 +165,40 @@ const createNewChannel = async (game, member) => {
     });
     moveMemberToRoom(newVoiceChannel, member);
   } catch (err) {
-    sendErrorMessage(err)
+    sendErrorMessage(err);
   }
 };
 
 const getRoomNumber = (game) => {
-  const category = bot.getChannel(game.parent)
-  if (category.channels.size === 1) return 1
+  const category = bot.getChannel(game.parent);
+  if (category.channels.size === 1) return 1;
   if (category.channels.size % 2 === 0) {
-    return category.channels.size - (category.channels.size / 2)
+    return category.channels.size - category.channels.size / 2;
   }
-  return category.channels.size - ((category.channels.size - 1) / 2) - 1
-}
+  return category.channels.size - (category.channels.size - 1) / 2 - 1;
+};
 
 const handleChannelName = () => {
   tempChannels.forEach(async (channel, index) => {
     try {
       if (!channel.voiceName.includes(index.toString())) {
-        const voiceChannel = bot.getChannel(channel.voice)
-        const textChannel = bot.getChannel(channel.text)
-        if (voiceChannel.name.toLowerCase().includes('max')) {
-          const userLimit = voiceChannel.userLimit
-          await voiceChannel.edit({ name: `Raum ${index + 1} MAX${userLimit}`})
+        const voiceChannel = bot.getChannel(channel.voice);
+        const textChannel = bot.getChannel(channel.text);
+        if (voiceChannel.name.toLowerCase().includes("max")) {
+          const userLimit = voiceChannel.userLimit;
+          await voiceChannel.edit({
+            name: `Raum ${index + 1} MAX${userLimit}`,
+          });
         } else {
-          await voiceChannel.edit({ name: `Raum ${index + 1}`})
+          await voiceChannel.edit({ name: `Raum ${index + 1}` });
         }
-        await textChannel.edit({ name: `Raum ${index + 1}`})
+        await textChannel.edit({ name: `Raum ${index + 1}` });
       }
     } catch (err) {
-      sendErrorMessage (err)
+      sendErrorMessage(err);
     }
-  })
-}
+  });
+};
 
 const checkMemberCountInTempChannel = () => {
   for (const channel of tempChannels) {
@@ -203,24 +209,27 @@ const checkMemberCountInTempChannel = () => {
   }
 };
 
-const handleChannelPermission = (channel, member, type) => {
-  if (type === "join") {
-    for (const room of tempChannels) {
-      if (room.voice === channel.id) {
-        bot
-          .getChannel(room.text)
-          .editPermission(member.id, 2953313361, 8, "member");
+const handleChannelPermission = async (channel, member, type) => {
+  try {
+    if (type === "join") {
+      for (const room of tempChannels) {
+        if (room.voice === channel.id) {
+          const channel = await bot.getChannel(room.text);
+          channel.editPermission(member.id, 2953313361, 8, "member");
+        }
+      }
+    } else {
+      for (const room of tempChannels) {
+        if (room.voice === channel.id) {
+          const channel = await bot.getChannel(room.text);
+          channel.editPermission(member.id, 1, 8589934591, "member");
+        }
       }
     }
-  } else {
-    for (const room of tempChannels) {
-      if (room.voice === channel.id) {
-        bot
-          .getChannel(room.text)
-          .editPermission(member.id, 1, 8589934591, "member");
-      }
-    }
+  } catch (err) {
+    sendErrorMessage(err)
   }
+  
 };
 
 const handleNewUser = async (member) => {
@@ -232,7 +241,7 @@ const handleNewUser = async (member) => {
       );
     }
   } catch (err) {
-    sendErrorMessage(err)
+    sendErrorMessage(err);
   }
 };
 
@@ -244,13 +253,13 @@ const handleMaxUserRequest = (msg) => {
       msg.content.toLowerCase().startsWith("max")
     ) {
       const maxUser = msg.content.substring(3, msg.content.lenth);
-      renameChannel(channel, maxUser)
+      renameChannel(channel, maxUser);
     }
   }
 };
 
 const renameChannel = (channel, maxUser) => {
-  if (maxUser === '0') {
+  if (maxUser === "0") {
     bot.getChannel(channel.voice).edit({
       name: `${channel.voiceName}`,
       userLimit: maxUser,
@@ -261,16 +270,16 @@ const renameChannel = (channel, maxUser) => {
       userLimit: maxUser,
     });
   }
-}
+};
 
 const removeChannel = async (channel) => {
   try {
     await bot.deleteChannel(channel.voice);
     await bot.deleteChannel(channel.text);
   } catch (err) {
-    sendErrorMessage(err)
+    sendErrorMessage(err);
   }
-  
+
   const channelToDeleteIndex = tempChannels.findIndex(
     (channelInArray) => channelInArray.voice === channel.voice
   );
