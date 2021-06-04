@@ -95,9 +95,9 @@ const checkForSupport = (channel, member) => {
       guild.members.forEach((admin) => {
         if (admin.roles.includes(SUPPORTROLE)) {
           if (
-            admin.clienStatus.web === "offline" &&
-            admin.clienStatus.desktop === "offline" &&
-            admin.clienStatus.mobile === "offline"
+            admin.clientStatus.web === "offline" &&
+            admin.clientStatus.desktop === "offline" &&
+            admin.clientStatus.mobile === "offline"
           )
             return;
           contactAdmins(admin.id, member);
@@ -167,6 +167,7 @@ const createNewChannel = async (game, member) => {
 
 const getRoomNumber = (game) => {
   const category = bot.getChannel(game.parent)
+  if (category.channels.size === 1) return 1
   if (category.channels.size % 2 === 0) {
     return category.channels.size - (category.channels.size / 2)
   }
