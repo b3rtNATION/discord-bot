@@ -1,3 +1,6 @@
 /node_modules
 .env
 testbot.js
+testbot2.js
+restart-discord.js
+errorLog.txt

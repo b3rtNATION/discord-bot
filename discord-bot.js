@@ -1,301 +1,294 @@
 const Eris = require("eris");
-const fs = require('fs')
+const fs = require("fs");
 require("dotenv").config();
 const bot = new Eris(process.env.token, { restMode: true });
 
-const SUPPORTROOM = "841449567790170112";
-const ROB = "718887341300908093";
-
-const SUPPORTROLE = "847811693252837406";
-const MEMBERROLE = "841431597206863876";
-const EVERYONE = "841429444647976961";
-const FRIENDWITH = "841432902117490709";
-const FRIENDWITHOUT = "841433371728412673";
-
 const GUILD_ID = "841429444647976961";
-const TALK = {
-  parent: "841459514116014100",
-  overwatch: "847805213096149012",
-  channelCount: 3,
-};
-const CS = {
-  parent: "841462843731738635",
-  overwatch: "841464217776160788",
-  channelCount: 2,
-};
-const APEX = {
-  parent: "847217713654661190",
-  overwatch: "847218203158511676",
-  channelCount: 2,
-};
-const COD = {
-  parent: "847213945064390666",
-  overwatch: "847214787356393472",
-  channelCount: 2,
-};
-const LOL = {
-  parent: "841797724223045632",
-  overwatch: "841798341112889395",
-  channelCount: 2,
-};
-const RL = {
-  parent: "841463201518452756",
-  overwatch: "841464253331406868",
-  channelCount: 2,
-};
-const OTHER = {
-  parent: "847466636834242581",
-  overwatch: "847466932689043518",
-  channelCount: 1,
-};
-const GAMES = [CS, APEX, COD, LOL, RL, OTHER, TALK];
-const tempChannels = [];
+
+const SASU = "360508102560448512";
+
+const SUPPORT_CHANNEL_ID = "841449567790170112";
+const SUPPORT_ROLE_ID = "847811693252837406";
+
+const MEMBER_ROLE_ID = "841431597206863876";
+const EVERYONE_ROLE_ID = "841429444647976961";
+const FRIEND_WITH_ROLE_ID = "841432902117490709";
+const FRIEND_WITHOUT_ROLE_ID = "841433371728412673";
+
+const CS = "841462843731738635";
+const RL = "841463201518452756";
+const APEX = "847217713654661190";
+const COD = "847213945064390666";
+const LOL = "841797724223045632";
+const OTHER = "847466636834242581";
+const TALK = "841459514116014100";
+
+const PARENT_CHANNEL_IDS = [CS, RL, APEX, COD, LOL, OTHER, TALK];
+const GREEK_LETTERS = ["α", "β", "γ", "λ", "π", "δ", "ε", "η", "φ", "ω", "ξ"];
 
 // ------------- E V E N T S -------------
 
 bot.on("voiceChannelSwitch", (member, newChannel, oldChannel) => {
-  checkForChannelRequest(newChannel, member);
-  checkMemberCountInTempChannel();
-  checkForSupport(newChannel, member);
-  handleChannelPermission(newChannel, member, "join");
+  handleUserMovement("switch", newChannel, oldChannel, member);
+  handleSupportRequest(newChannel, member);
 });
 
 bot.on("voiceChannelJoin", (member, newChannel) => {
-  checkForChannelRequest(newChannel, member);
-  checkForSupport(newChannel, member);
-  handleChannelPermission(newChannel, member, "join");
+  handleUserMovement("join", newChannel, null, member);
+  handleSupportRequest(newChannel, member);
 });
 
 bot.on("voiceChannelLeave", (member, oldChannel) => {
-  checkMemberCountInTempChannel();
-  handleChannelPermission(oldChannel, member, "leave");
+  handleUserMovement("leave", null, oldChannel, member);
 });
 
-bot.on("guildMemberAdd", (guild, member) => {
-  handleNewUser(member);
-});
-
-bot.on("messageCreate", (msg) => {
-  handleMaxUserRequest(msg);
+bot.on("messageCreate", (messageObject) => {
+  handleChat(messageObject);
 });
 
 // ------------- L O G I C -------------
 
-const checkForChannelRequest = (channel, member) => {
-  for (const game of GAMES) {
-    if (channel.id === game.overwatch) {
-      createNewChannel(game, member);
+const handleUserMovement = (type, joinedChannel, leftChannel, member) => {
+  switch (type) {
+    case "join":
+      handleUserJoinedChannel(joinedChannel, member);
+      break;
+    case "leave":
+      handleUserLeftChannel(leftChannel, member);
+      break;
+    case "switch":
+      handleUserSwitchedChannel(joinedChannel, leftChannel, member);
+      break;
+  }
+};
+
+const handleUserJoinedChannel = (joinedChannel, member) => {
+  if (isOverwatchedChannel(joinedChannel)) {
+    const parentChannel = getParentChannel(joinedChannel);
+    const allChannelsAreFull = checkIfAllChannelsAreFull(parentChannel);
+    if (allChannelsAreFull) {
+      createNewChannelPair(parentChannel);
     }
+    manageChannelPermission(member, joinedChannel);
   }
 };
 
-const checkForSupport = (channel, member) => {
-  if (SUPPORTROOM === channel.id) {
-    const guilds = bot.guilds;
-    guilds.forEach((guild) => {
-      guild.members.forEach((admin) => {
-        if (admin.roles.includes(SUPPORTROLE)) {
-          try {
-            if (
-              admin.clientStatus.web === "offline" &&
-              admin.clientStatus.desktop === "offline" &&
-              admin.clientStatus.mobile === "offline"
-            )
-              return;
-          } catch (err) {
-            logError(err);
-          }
-          contactAdmins(admin.id, member);
-        }
-      });
-    });
+const handleUserSwitchedChannel = (joinedChannel, leftChannel, member) => {
+  if (joinedChannel) {
+    isOverwatchedChannel(joinedChannel) &&
+      handleUserJoinedChannel(joinedChannel, member);
+  }
+  if (leftChannel) {
+    isOverwatchedChannel(leftChannel) &&
+      handleUserLeftChannel(leftChannel, member);
   }
 };
 
-const contactAdmins = async (admin, member) => {
-  try {
-    const chatroom = await bot.getDMChannel(admin);
-    chatroom.createMessage(`${member.username} braucht dich als Support`);
-  } catch (err) {
-    logError(err);
+const handleUserLeftChannel = (leftChannel, member) => {
+  const channelIsEmpty = isChannelEmpty(leftChannel);
+  const remainingChannel = getRemaingEmptyVoiceChannel(leftChannel);
+  if (
+    channelIsEmpty &&
+    remainingChannel > 1 &&
+    isOverwatchedChannel(leftChannel)
+  ) {
+    deleteChannelPair(leftChannel);
+  } else {
+    manageChannelPermission(member, null, leftChannel);
   }
 };
 
-const logError = (error) => {
-  const timeStamp = `\n\n\n${new Date().toLocaleString(
-    "de-DE"
-  )}\n*****************\n`;
-  try {
-    fs.appendFileSync("errorLog.txt", timeStamp);
-    fs.appendFileSync("errorLog.txt", error.message);
-  } catch (err) {
-    console.log(err.message);
+const handleSupportRequest = (joinedChannel, member) => {
+  if (joinedChannel.id === SUPPORT_CHANNEL_ID) {
+    contactAdmins(member);
   }
 };
 
-const moveMemberToRoom = (newChannel, member) => {
-  bot.editGuildMember(GUILD_ID, member.id, { channelID: newChannel.id });
+const handleChat = (messageObject) => {
+  const message = messageObject.content.toLowerCase();
+  if (message.includes("max") && message.length < 6) {
+    setChannelUserLimit(messageObject);
+  }
 };
 
-const createNewChannel = async (game, member) => {
-  const roomNumber = getRoomNumber(game);
-  try {
-    const newVoiceChannel = await bot.createChannel(
-      GUILD_ID,
-      `Raum ${roomNumber}`,
-      2,
-      {
-        parentID: game.parent,
-        bitrate: 96000,
+const isOverwatchedChannel = (channel) => {
+  return PARENT_CHANNEL_IDS.includes(channel.parentID);
+};
+
+const checkIfAllChannelsAreFull = (parentChannel) => {
+  let allChannelsAreFull = true;
+  parentChannel.channels.forEach((channel) => {
+    if (channel.type === 2) {
+      if (channel.voiceMembers.size === 0) {
+        allChannelsAreFull = false;
       }
-    );
-
-    const newTextChannel = await bot.createChannel(
-      GUILD_ID,
-      `Raum ${roomNumber}`,
-      0,
-      {
-        parentID: game.parent,
-        permissionOverwrites: [
-          { deny: 8589934591, id: MEMBERROLE, type: "role" },
-          { deny: 8589934591, id: EVERYONE, type: "role" },
-          { deny: 8589934591, id: FRIENDWITH, type: "role" },
-          { deny: 8589934591, id: FRIENDWITHOUT, type: "role" },
-        ],
-      }
-    );
-    tempChannels.push({
-      voice: newVoiceChannel.id,
-      voiceName: newVoiceChannel.name,
-      text: newTextChannel.id,
-      gameName: game.name,
-      owner: member.id,
-    });
-    moveMemberToRoom(newVoiceChannel, member);
-  } catch (err) {
-    logError(err);
-  }
+    }
+  });
+  return allChannelsAreFull;
 };
 
-const getRoomNumber = (game) => {
-  const category = bot.getChannel(game.parent);
-  if (category.channels.size === 1) return 1;
-  if (category.channels.size % 2 === 0) {
-    return category.channels.size - category.channels.size / 2;
-  }
-  return category.channels.size - (category.channels.size - 1) / 2 - 1;
+const getParentChannel = (channel) => {
+  return bot.getChannel(channel.parentID);
 };
 
-const handleChannelName = () => {
-  tempChannels.forEach(async (channel, index) => {
-    try {
-      if (!channel.voiceName.includes(index.toString())) {
-        const voiceChannel = bot.getChannel(channel.voice);
-        const textChannel = bot.getChannel(channel.text);
-        if (voiceChannel.name.toLowerCase().includes("max")) {
-          const userLimit = voiceChannel.userLimit;
-          await voiceChannel.edit({
-            name: `Raum ${index + 1} MAX${userLimit}`,
-          });
-        } else {
-          await voiceChannel.edit({ name: `Raum ${index + 1}` });
-        }
-        await textChannel.edit({ name: `Raum ${index + 1}` });
-      }
-    } catch (err) {
-      logError(err);
+const createNewChannelPair = async (parentChannel) => {
+  const channelName = getChannelName(parentChannel);
+  await bot.createChannel(GUILD_ID, channelName, 2, {
+    parentID: parentChannel.id,
+  });
+
+  await bot.createChannel(GUILD_ID, channelName, 0, {
+    parentID: parentChannel.id,
+    permissionOverwrites: [
+      { deny: 8589934591, id: EVERYONE_ROLE_ID, type: "role" },
+      { deny: 8589934591, id: MEMBER_ROLE_ID, type: "role" },
+      { deny: 8589934591, id: FRIEND_WITHOUT_ROLE_ID, type: "role" },
+      { deny: 8589934591, id: FRIEND_WITH_ROLE_ID, type: "role" },
+    ],
+  });
+};
+
+const getChannelName = (parentChannel) => {
+  let isUniqueLetter = false;
+  let randomGreekLetter = "";
+  while (!isUniqueLetter) {
+    randomGreekLetter =
+      GREEK_LETTERS[Math.floor(Math.random() * GREEK_LETTERS.length)];
+    isUniqueLetter = testForUniqueLetter(parentChannel, randomGreekLetter);
+  }
+  return `Raum ${randomGreekLetter}`;
+};
+
+const testForUniqueLetter = (parentChannel, letter) => {
+  let isUniqureLetter = true;
+  parentChannel.channels.forEach((channel) => {
+    if (channel.name.includes(letter)) {
+      isUniqureLetter = false;
+    }
+  });
+  return isUniqureLetter;
+};
+
+const getRemaingEmptyVoiceChannel = (leftChannel) => {
+  const parentChannel = getParentChannel(leftChannel);
+  let remainingChannel = 0;
+  parentChannel.channels.forEach((channel) => {
+    if (channel.type === 2 && channel.voiceMembers.size === 0) {
+      remainingChannel++;
+    }
+  });
+  return remainingChannel;
+};
+
+const isChannelEmpty = (leftChannel) => {
+  return leftChannel.voiceMembers.size === 0 ? true : false;
+};
+
+const deleteChannelPair = (leftChannel) => {
+  const channelIdentifier = getChannelIdentifier(leftChannel);
+  const parentChannel = getParentChannel(leftChannel);
+  parentChannel.channels.forEach(async (channel) => {
+    if (channel.name.includes(channelIdentifier)) {
+      await bot.deleteChannel(channel.id);
     }
   });
 };
 
-const checkMemberCountInTempChannel = () => {
-  for (const channel of tempChannels) {
-    const members = bot.getChannel(channel.voice).voiceMembers;
-    if (members.size === 0) {
-      removeChannel(channel);
-    }
-  }
+const getChannelIdentifier = (channel) => {
+  return channel.name.substring(5, channel.name.length);
 };
 
-const handleChannelPermission = async (channel, member, type) => {
-  try {
-    if (type === "join") {
-      for (const room of tempChannels) {
-        if (room.voice === channel.id) {
-          const channel = await bot.getChannel(room.text);
-          channel.editPermission(member.id, 2953313361, 8, "member");
-        }
+const getMatchingTextChannel = (channel, channelIdentifier) => {
+  return new Promise((res, rej) => {
+    const channels = getParentChannel(channel).channels;
+    channels.forEach((channel) => {
+      if (channel.type === 0 && channel.name.includes(channelIdentifier)) {
+        res(channel);
       }
-    } else {
-      for (const room of tempChannels) {
-        if (room.voice === channel.id) {
-          const channel = await bot.getChannel(room.text);
-          channel.editPermission(member.id, 1, 8589934591, "member");
-        }
-      }
-    }
-  } catch (err) {
-    logError(err)
-  }
-};
-
-const handleNewUser = async (member) => {
-  try {
-    if (member.roles.length === 0) {
-      const dm = await bot.getDMChannel(member.id);
-      dm.createMessage(
-        `Hallo ${member.username} und Willkommen auf dem Discord von desiRe Gaming!\n\nFalls Du hier neu bist, komm doch einfach mal in das Support Wartezimmer. Unsere Supporter sind schnellstmöglich für dich da!`
-      );
-    }
-  } catch (err) {
-    logError(err);
-  }
-};
-
-const handleMaxUserRequest = async (msg) => {
-  for (const channel of tempChannels) {
-    if (channel.text === msg.channel.id && msg.author.id === channel.owner) {
-      const maxUser = msg.content.substring(3, msg.content.lenth);
-      try {
-        await bot.getChannel(channel.voice).edit({
-          userLimit: maxUser,
-        });
-      } catch (err) {
-        logError(err);
-      }
-    }
-  }
-};
-
-const renameChannel = (channel, maxUser) => {
-  if (maxUser === "0") {
-    bot.getChannel(channel.voice).edit({
-      name: `${channel.voiceName}`,
-      userLimit: maxUser,
     });
-  } else {
-    bot.getChannel(channel.voice).edit({
-      name: `${channel.voiceName} MAX${maxUser}`,
-      userLimit: maxUser,
-    });
-  }
+  });
 };
 
-const removeChannel = async (channel) => {
-  try {
-    await bot.deleteChannel(channel.voice);
-    await bot.deleteChannel(channel.text);
-  } catch (err) {
-    logError(err);
-  }
+const getMatchingVoiceChannel = (channel, channelIdentifier) => {
+  return new Promise((res, rej) => {
+    const channels = getParentChannel(channel).channels;
+    channels.forEach((channel) => {
+      if (channel.type === 2 && channel.name.includes(channelIdentifier)) {
+        res(channel);
+      }
+    });
+  });
+};
 
-  const channelToDeleteIndex = tempChannels.findIndex(
-    (channelInArray) => channelInArray.voice === channel.voice
+const manageChannelPermission = (member, joinedChannel, leftChannel) => {
+  joinedChannel && addPermission(joinedChannel, member);
+  leftChannel && removePermission(leftChannel, member);
+};
+
+const addPermission = async (channel, member) => {
+  const channelIdentifier = getChannelIdentifier(channel);
+  const textChannel = await getMatchingTextChannel(channel, channelIdentifier);
+  await textChannel.editPermission(member.id, 2953313361, 8, "member");
+};
+
+const removePermission = async (channel, member) => {
+  const channelIdentifier = getChannelIdentifier(channel);
+  const textChannel = await getMatchingTextChannel(channel, channelIdentifier);
+  await textChannel.editPermission(member.id, 1, 8589934591, "member");
+};
+
+const setChannelUserLimit = async (messageObject) => {
+  const channelIdentifier = getChannelIdentifier(messageObject.channel);
+  const voiceChannel = await getMatchingVoiceChannel(
+    messageObject.channel,
+    channelIdentifier
   );
-  tempChannels.splice(channelToDeleteIndex, 1);
-  setTimeout(() => {
-    handleChannelName();
-  }, 500);
+  const userLimit = getUserLimit(messageObject.content);
+  await voiceChannel.edit({ userLimit });
+};
+
+const getUserLimit = (message) => {
+  const userLimit = message.substring(3, message.length);
+  if (isNaN(userLimit)) return "0";
+  return userLimit;
+};
+
+const contactAdmins = (member) => {
+  const admins = getAdmins();
+  admins.forEach((admin) => {
+    if (adminIsOnline(admin) || admin.id === SASU) {
+      sendSupportMessage(admin, member);
+    }
+  });
+};
+
+const getAdmins = () => {
+  const admins = [];
+  const guilds = bot.guilds;
+  guilds.forEach((guild) => {
+    guild.members.forEach((member) => {
+      if (member.roles.includes(SUPPORT_ROLE_ID)) {
+        admins.push(member);
+      }
+    });
+  });
+  return admins;
+};
+
+const adminIsOnline = (admin) => {
+  if (
+    admin.clientStatus.desktop === "offline" &&
+    admin.clientStatus.mobile === "offline"
+  ) {
+    return false;
+  } else {
+    return true;
+  }
+};
+
+const sendSupportMessage = async (admin, member) => {
+  const chatroom = await bot.getDMChannel(admin.id);
+  chatroom.createMessage(`${member.username} braucht dich als Support`);
 };
 
 bot.connect();

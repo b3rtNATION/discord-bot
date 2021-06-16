@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^10.0.0",
-    "eris": "^0.15.1"
+    "eris": "^0.15.1",
+    "simple-ssh": "^1.0.0"
   }
 }
