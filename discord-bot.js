@@ -24,7 +24,7 @@ const OTHER = "847466636834242581";
 const TALK = "841459514116014100";
 
 const PARENT_CHANNEL_IDS = [CS, RL, APEX, COD, LOL, OTHER, TALK];
-const GREEK_LETTERS = ["α", "β", "γ", "λ", "π", "δ", "ε", "η", "φ", "ω", "ξ"];
+const GREEK_LETTERS = ["α", "β", "γ", "λ", "π", "δ", "ε", "η", "φ", "ω", "ξ", "μ", "ρ", "σ"];
 
 // ------------- E V E N T S -------------
 
@@ -267,9 +267,11 @@ const getAdmins = () => {
   const guilds = bot.guilds;
   guilds.forEach((guild) => {
     guild.members.forEach((member) => {
-      if (member.roles.includes(SUPPORT_ROLE_ID)) {
-        admins.push(member);
-      }
+      member.roles.forEach(role => {
+        if (role === SUPPORT_ROLE_ID) {
+          admins.push(member)
+        }
+      })
     });
   });
   return admins;
@@ -277,8 +279,8 @@ const getAdmins = () => {
 
 const adminIsOnline = (admin) => {
   if (
-    admin.clientStatus.desktop === "offline" &&
-    admin.clientStatus.mobile === "offline"
+    admin.status === "offline" &&
+    admin.status === "offline"
   ) {
     return false;
   } else {
