@@ -24,7 +24,17 @@ const OTHER = "847466636834242581";
 const TALK = "841459514116014100";
 
 const PARENT_CHANNEL_IDS = [CS, RL, APEX, COD, LOL, OTHER, TALK];
-const GREEK_LETTERS = ["α", "β", "γ", "λ", "π", "δ", "ε", "η", "φ", "ω", "ξ", "μ", "ρ", "σ"];
+const NUMBERS = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+];
 
 // ------------- E V E N T S -------------
 
@@ -44,6 +54,10 @@ bot.on("voiceChannelLeave", (member, oldChannel) => {
 
 bot.on("messageCreate", (messageObject) => {
   handleChat(messageObject);
+});
+
+bot.on("guildMemberAdd", (guild, member) => {
+  handleNewUser(member);
 });
 
 // ------------- L O G I C -------------
@@ -149,24 +163,23 @@ const createNewChannelPair = async (parentChannel) => {
 };
 
 const getChannelName = (parentChannel) => {
-  let isUniqueLetter = false;
-  let randomGreekLetter = "";
-  while (!isUniqueLetter) {
-    randomGreekLetter =
-      GREEK_LETTERS[Math.floor(Math.random() * GREEK_LETTERS.length)];
-    isUniqueLetter = testForUniqueLetter(parentChannel, randomGreekLetter);
-  }
-  return `Raum ${randomGreekLetter}`;
+  let channelNumber = getChannelNumber(parentChannel);
+  return `Raum ${channelNumber}`;
 };
 
-const testForUniqueLetter = (parentChannel, letter) => {
-  let isUniqureLetter = true;
-  parentChannel.channels.forEach((channel) => {
-    if (channel.name.includes(letter)) {
-      isUniqureLetter = false;
-    }
-  });
-  return isUniqureLetter;
+const getChannelNumber = (parentChannel) => {
+  let channelNumber = 1;
+  let uniqueNumber = true;
+  while (uniqueNumber) {
+    parentChannel.channels.forEach((channel) => {
+      if (channel.name.includes(channelNumber)) {
+        channelNumber++;
+      } else {
+        uniqueNumber = false;
+      }
+    });
+  }
+  return channelNumber;
 };
 
 const getRemaingEmptyVoiceChannel = (leftChannel) => {
@@ -195,7 +208,7 @@ const deleteChannelPair = (leftChannel) => {
 };
 
 const getChannelIdentifier = (channel) => {
-  return channel.name.substring(5, channel.name.length);
+  return channel.name.substring(5, channel.name.length)
 };
 
 const getMatchingTextChannel = (channel, channelIdentifier) => {
@@ -267,21 +280,18 @@ const getAdmins = () => {
   const guilds = bot.guilds;
   guilds.forEach((guild) => {
     guild.members.forEach((member) => {
-      member.roles.forEach(role => {
+      member.roles.forEach((role) => {
         if (role === SUPPORT_ROLE_ID) {
-          admins.push(member)
+          admins.push(member);
         }
-      })
+      });
     });
   });
   return admins;
 };
 
 const adminIsOnline = (admin) => {
-  if (
-    admin.status === "offline" &&
-    admin.status === "offline"
-  ) {
+  if (admin.status === "offline") {
     return false;
   } else {
     return true;
@@ -291,6 +301,15 @@ const adminIsOnline = (admin) => {
 const sendSupportMessage = async (admin, member) => {
   const chatroom = await bot.getDMChannel(admin.id);
   chatroom.createMessage(`${member.username} braucht dich als Support`);
+};
+
+const handleNewUser = async (member) => {
+  if (member.roles.length === 0) {
+    const dm = await bot.getDMChannel(member.id);
+    dm.createMessage(
+      `Hallo ${member.username} und Willkommen auf dem Discord von desiRe Gaming!\n\nFalls Du hier neu bist, komm doch einfach mal in das Support Wartezimmer. Unsere Supporter sind schnellstmöglich für dich da!`
+    );
+  }
 };
 
 bot.connect();
