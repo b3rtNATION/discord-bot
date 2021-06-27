@@ -24,17 +24,6 @@ const OTHER = "847466636834242581";
 const TALK = "841459514116014100";
 
 const PARENT_CHANNEL_IDS = [CS, RL, APEX, COD, LOL, OTHER, TALK];
-const NUMBERS = [
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-];
 
 // ------------- E V E N T S -------------
 
@@ -149,6 +138,7 @@ const createNewChannelPair = async (parentChannel) => {
   const channelName = getChannelName(parentChannel);
   await bot.createChannel(GUILD_ID, channelName, 2, {
     parentID: parentChannel.id,
+    bitrate: 128000,
   });
 
   await bot.createChannel(GUILD_ID, channelName, 0, {
@@ -163,24 +153,36 @@ const createNewChannelPair = async (parentChannel) => {
 };
 
 const getChannelName = (parentChannel) => {
-  let channelNumber = getChannelNumber(parentChannel);
+  let channelNumber = generateChannelNumber(parentChannel);
+  if (parentChannel.id === TALK) return `Talk ${channelNumber}`
   return `Raum ${channelNumber}`;
 };
 
-const getChannelNumber = (parentChannel) => {
-  let channelNumber = 1;
-  let uniqueNumber = true;
-  while (uniqueNumber) {
-    parentChannel.channels.forEach((channel) => {
-      if (channel.name.includes(channelNumber)) {
-        channelNumber++;
-      } else {
-        uniqueNumber = false;
-      }
-    });
+const generateChannelNumber = (parentChannel) => {
+  channelNumbers = getChannelNumbers(parentChannel)
+  let channelNumber = 1
+  let uniqueNumber = false
+  while (!uniqueNumber) {
+    if (channelNumbers.includes(channelNumber.toString())) {
+      channelNumber++
+    } else {
+      uniqueNumber = true
+    }
   }
   return channelNumber;
 };
+
+const getChannelNumbers = (parentChannel) => {
+  const channelNumbers = []
+  const channels = parentChannel.channels;
+  channels.forEach((channel) => {
+    if (channel.type === 2) {
+      const channelIdentifier = getChannelIdentifier(channel)
+      channelNumbers.push(channelIdentifier)
+    }
+  });
+  return channelNumbers
+}
 
 const getRemaingEmptyVoiceChannel = (leftChannel) => {
   const parentChannel = getParentChannel(leftChannel);
@@ -299,8 +301,10 @@ const adminIsOnline = (admin) => {
 };
 
 const sendSupportMessage = async (admin, member) => {
-  const chatroom = await bot.getDMChannel(admin.id);
-  chatroom.createMessage(`${member.username} braucht dich als Support`);
+  if (!member.roles.includes(SUPPORT_ROLE_ID)) {
+    const chatroom = await bot.getDMChannel(admin.id);
+    chatroom.createMessage(`${member.username} braucht dich als Support`);
+  }
 };
 
 const handleNewUser = async (member) => {
